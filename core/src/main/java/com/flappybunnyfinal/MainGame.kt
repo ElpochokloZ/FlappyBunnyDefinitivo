@@ -6,26 +6,24 @@ import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.utils.ScreenUtils
+import com.badlogic.gdx.audio.Sound
 import java.util.Random
 
-/** [com.badlogic.gdx.ApplicationListener] implementation shared by all platforms.  */
 class MainGame : ApplicationAdapter() {
     lateinit var batch: SpriteBatch
     lateinit var bird: Bird
     lateinit var pipes: MutableList<Pipe>
-    lateinit var pipes2: MutableList<Pipe>
     lateinit var pipeTexture: Texture
-    lateinit var pipeTexture2: Texture
     lateinit var background: Background
+    lateinit var passSound: Sound
     private val speed: Float = 200f
     private var pipeSpawnTimer = 0f
-    private val pipeSpawnInterval = 2f
+    private val pipeSpawnInterval = 2.5f // Aumenta este valor (ejemplo: 2.5 segundos)
     private val pipeSpeed = 150f
     private val random = Random()
     private lateinit var gameOverScreen: GameOver
-    var gameState: GameState = GameState.PLAYING // Add game state
-    var score: Int = 0 // Add score
+    var gameState: GameState = GameState.PLAYING
+    var score: Int = 0
 
     override fun create() {
         batch = SpriteBatch()
@@ -34,16 +32,14 @@ class MainGame : ApplicationAdapter() {
 
         pipeTexture = Texture("pipe.png")
         pipes = mutableListOf()
-        generatePipes()
+        generatePipePair()
 
-        pipeTexture2 = Texture("pipe2.png")
-        pipes2 = mutableListOf()
-        generatePipes2()
+        passSound = Gdx.audio.newSound(Gdx.files.internal("Coin.mp3")) // Carga el archivo de sonido
 
         val backgroundTexture = Texture("Fondo.png")
         background = Background(backgroundTexture)
 
-        gameOverScreen = GameOver(this) // Initialize GameOverScreen
+        gameOverScreen = GameOver(this)
 
         Gdx.input.inputProcessor = object : InputAdapter() {
             override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
@@ -57,9 +53,24 @@ class MainGame : ApplicationAdapter() {
         }
     }
 
-    private fun generatePipes2() {
-        TODO("Not yet implemented")
+    fun generatePipePair() {
+        val fixedGap = 300f
+        val maxBottomPipeHeight = Gdx.graphics.height - fixedGap - 100f
+        val bottomPipeHeight = random.nextFloat() * maxBottomPipeHeight + 100f
+
+        val pipeX = Gdx.graphics.width.toFloat()
+
+        val bottomPipeY = 0f
+        val bottomPipe = Pipe(pipeX, bottomPipeY, pipeTexture, desiredHeight = bottomPipeHeight)
+
+        val topPipeY = Gdx.graphics.height.toFloat()
+        val topPipeHeight = Gdx.graphics.height - (bottomPipeHeight + fixedGap)
+        val topPipe = Pipe(pipeX, topPipeY, pipeTexture, flipped = true, desiredHeight = topPipeHeight)
+
+        pipes.add(bottomPipe)
+        pipes.add(topPipe)
     }
+
 
     override fun render() {
         Gdx.gl.glClearColor(1f, 0f, 0f, 1f)
@@ -76,7 +87,7 @@ class MainGame : ApplicationAdapter() {
 
                 pipeSpawnTimer += Gdx.graphics.deltaTime
                 if (pipeSpawnTimer >= pipeSpawnInterval) {
-                    generatePipes()
+                    generatePipePair()
                     pipeSpawnTimer = 0f
                 }
 
@@ -89,6 +100,7 @@ class MainGame : ApplicationAdapter() {
                     if (pipe.bounds.x + pipeTexture.width < bird.x && !pipe.passed) {
                         score++
                         pipe.passed = true
+                        passSound.play()
                     }
                 }
 
@@ -109,28 +121,12 @@ class MainGame : ApplicationAdapter() {
         gameState = GameState.GAME_OVER
     }
 
-    fun generatePipes() {
-        val minGap = -20f // Espacio mínimo entre las tuberías
-        val pipeHeight = pipeTexture.height.toFloat() + 750f// Altura de la tubería
-
-        // La tubería superior comienza en la parte superior de la pantalla
-        val pipe1Y = Gdx.graphics.height.toFloat() // Posición Y en el borde superior
-        val pipe1 = Pipe(Gdx.graphics.width.toFloat(), pipe1Y, pipeTexture)
-
-        //La tubería inferior se coloca a una distancia fija por debajo de la tubería superior
-        val pipe2Y = Gdx.graphics.height - pipeHeight - minGap // Calcula la posición Y de la tubería inferior
-        val pipe2 = Pipe(Gdx.graphics.width.toFloat(), pipe2Y, pipeTexture) // Posición Y de la tubería inferior
-
-        pipes.add(pipe1)
-        pipes.add(pipe2)
-    }
-
     fun resetGame() {
         gameState = GameState.PLAYING
         score = 0
         bird.reset()
         pipes.clear()
-        generatePipes()
+        generatePipePair()
         for (pipe in pipes) {
             pipe.passed = false
         }
@@ -142,9 +138,9 @@ class MainGame : ApplicationAdapter() {
         for (pipe in pipes) {
             pipe.dispose()
         }
-
         pipeTexture.dispose()
         background.dispose()
+        passSound.dispose()
         gameOverScreen.dispose()
     }
 }

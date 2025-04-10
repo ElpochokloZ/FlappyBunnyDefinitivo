@@ -8,7 +8,7 @@ import com.badlogic.gdx.math.Rectangle
 class Bird(var x: Float, var y: Float, val texture: Texture) {
 
     var velocity: Float = 0f
-    val gravity: Float = -30f // Adjust gravity as needed
+    val gravity: Float = -50f // Adjust gravity as needed
     val bounds: Rectangle = Rectangle(x, y, texture.width.toFloat() / 5, texture.height.toFloat() / 5)
 
     fun update(delta: Float) {
